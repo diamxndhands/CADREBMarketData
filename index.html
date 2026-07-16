@@ -192,6 +192,15 @@
       </div>
 
       <div class="filter-group">
+        <label>Sale months</label>
+        <div class="year-range">
+          <select id="monthFrom"></select>
+          <span>to</span>
+          <select id="monthTo"></select>
+        </div>
+      </div>
+
+      <div class="filter-group">
         <label>Community</label>
         <div class="combo" id="cityCombo">
           <button type="button" class="combo-btn" id="cityComboBtn"><span id="cityComboLabel">All communities</span><span class="chev">▾</span></button>
@@ -379,6 +388,8 @@ const DATASETS = {
   },
 };
 
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
 let current, cities, records, BAND_DEFS, allYears, MIN_YEAR, MAX_YEAR;
 
 const root = document.querySelector('.viz-root');
@@ -404,8 +415,7 @@ function fmtCompactNum(v) {
 function fmtPct(v, digits) { return v.toFixed(digits==null?1:digits) + '%'; }
 function fmtDate(y,m,d) {
   if (!y) return '—';
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return MONTHS[m-1] + ' ' + d + ', ' + y;
+  return MONTH_ABBR[m-1] + ' ' + d + ', ' + y;
 }
 function median(arr) {
   if (!arr.length) return 0;
@@ -418,6 +428,7 @@ function mean(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0
 /* ===================== State ===================== */
 const state = {
   yearFrom: 0, yearTo: 0,
+  monthFrom: 1, monthTo: 12,
   cities: new Set(),
   tenures: new Set([0,1,2]),
   bands: new Set(),
@@ -456,6 +467,36 @@ function populateYearOptions() {
     const o2 = document.createElement('option'); o2.value=y; o2.textContent=y; to.appendChild(o2);
   });
   from.value = state.yearFrom; to.value = state.yearTo;
+}
+
+function setupMonthListeners() {
+  const from = document.getElementById('monthFrom');
+  const to = document.getElementById('monthTo');
+  from.addEventListener('change', () => {
+    state.monthFrom = +from.value;
+    if (state.monthFrom > state.monthTo) { state.monthTo = state.monthFrom; to.value = state.monthTo; }
+    state.page = 0; renderAll();
+  });
+  to.addEventListener('change', () => {
+    state.monthTo = +to.value;
+    if (state.monthTo < state.monthFrom) { state.monthFrom = state.monthTo; from.value = state.monthFrom; }
+    state.page = 0; renderAll();
+  });
+}
+
+// Months are always Jan–Dec regardless of dataset, so options are populated
+// once; only the selected values get reset when the active dataset changes.
+function populateMonthOptions() {
+  const from = document.getElementById('monthFrom');
+  const to = document.getElementById('monthTo');
+  MONTH_ABBR.forEach((label, i) => {
+    const o1 = document.createElement('option'); o1.value = i+1; o1.textContent = label; from.appendChild(o1);
+    const o2 = document.createElement('option'); o2.value = i+1; o2.textContent = label; to.appendChild(o2);
+  });
+}
+function resetMonthSelects() {
+  document.getElementById('monthFrom').value = state.monthFrom;
+  document.getElementById('monthTo').value = state.monthTo;
 }
 
 function setupComboToggle(comboId) {
@@ -531,6 +572,7 @@ function getFiltered() {
   for (let i=0;i<records.length;i++) {
     const r = records[i];
     if (r[F.saleY] < state.yearFrom || r[F.saleY] > state.yearTo) continue;
+    if (r[F.saleM] < state.monthFrom || r[F.saleM] > state.monthTo) continue;
     if (!state.cities.has(r[F.city])) continue;
     if (!state.tenures.has(r[F.tenure])) continue;
     const b = bandIndex(r[F.salePrice]);
@@ -552,7 +594,6 @@ function computeKPIs(filtered) {
   const medRatio = median(filtered.filter(r=>r[F.listPrice]>0).map(r=>100*r[F.salePrice]/r[F.listPrice]));
   const medMaintFee = current.hasMaintFee ? median(filtered.filter(r=>r[F.maintFee]!=null).map(r=>r[F.maintFee])) : null;
 
-  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const yearsPresent = Array.from(new Set(filtered.map(r=>r[F.saleY]))).sort((a,b)=>a-b);
   let deltas = { count:null, price:null, avgPrice:null, ppsf:null, avgPpsf:null, dom:null, ratio:null, volume:null, maintFee:null };
   if (yearsPresent.length >= 2) {
@@ -561,10 +602,11 @@ function computeKPIs(filtered) {
     const curr = filtered.filter(r=>r[F.saleY]===yLast);
     const prev = filtered.filter(r=>r[F.saleY]===yPrev);
     const lastMonthSeen = Math.max(...curr.map(r=>r[F.saleM]));
-    const isPartial = lastMonthSeen < 12;
-    // Compare like-for-like: if the latest year is only partially covered (e.g. YTD),
-    // restrict the prior year to the same Jan–lastMonthSeen window so the % change isn't
-    // distorted by comparing a partial year to a full one.
+    // Only treat this as a genuine year-to-date situation when the user hasn't
+    // deliberately narrowed the month range themselves — if they picked e.g.
+    // Jan–Jul on purpose, every year is equally (and intentionally) truncated
+    // by the month filter already, so curr/prev are already apples-to-apples.
+    const isPartial = state.monthTo === 12 && lastMonthSeen < 12;
     const prevComparable = isPartial ? prev.filter(r=>r[F.saleM] <= lastMonthSeen) : prev;
     const pct = (a,b) => b===0 ? null : 100*(a-b)/b;
     deltas.count = pct(curr.length, prevComparable.length);
@@ -582,7 +624,7 @@ function computeKPIs(filtered) {
       );
     }
     deltas._yLast = yLast; deltas._yPrev = yPrev; deltas._isPartial = isPartial;
-    deltas._label = isPartial ? `vs ${yPrev} Jan–${MONTH_ABBR[lastMonthSeen-1]}` : `vs ${yPrev}`;
+    deltas._label = isPartial ? `vs ${yPrev} ${MONTH_ABBR[state.monthFrom-1]}–${MONTH_ABBR[lastMonthSeen-1]}` : `vs ${yPrev}`;
   }
   return { count, totalVolume, medPrice, avgPrice, medPPSF, avgPPSF, avgDOM, medRatio, medMaintFee, deltas };
 }
@@ -627,9 +669,9 @@ function renderKPIs(filtered) {
 
   const note = document.getElementById('kpiNote');
   if (k.deltas._isPartial) {
-    const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const lastMonthSeen = Math.max(...filtered.filter(r=>r[F.saleY]===k.deltas._yLast).map(r=>r[F.saleM]));
-    note.textContent = `Year-over-year changes compare ${k.deltas._yLast} year-to-date (Jan–${MONTH_ABBR[lastMonthSeen-1]}) against the same Jan–${MONTH_ABBR[lastMonthSeen-1]} window in ${k.deltas._yPrev}, since ${k.deltas._yLast} is not yet complete.`;
+    const fromLbl = MONTH_ABBR[state.monthFrom-1], toLbl = MONTH_ABBR[lastMonthSeen-1];
+    note.textContent = `Year-over-year changes compare ${k.deltas._yLast} year-to-date (${fromLbl}–${toLbl}) against the same ${fromLbl}–${toLbl} window in ${k.deltas._yPrev}, since ${k.deltas._yLast} is not yet complete.`;
   } else {
     note.textContent = '';
   }
@@ -1128,6 +1170,8 @@ function activateDataset(key) {
 
   state.yearFrom = MIN_YEAR;
   state.yearTo = MAX_YEAR;
+  state.monthFrom = 1;
+  state.monthTo = 12;
   state.cities = new Set(cities.map((_,i)=>i));
   state.tenures = new Set([0,1,2]);
   state.bands = new Set(BAND_DEFS.map((_,i)=>i));
@@ -1138,6 +1182,7 @@ function activateDataset(key) {
   document.getElementById('tableSearch').value = '';
 
   populateYearOptions();
+  resetMonthSelects();
   populateCombo('cityComboPanel', 'cityComboLabel', cities, state.cities, { allLabel: 'All communities' });
   populateCombo('tenureComboPanel', 'tenureComboLabel', TENURE_LABEL, state.tenures, { allLabel: 'All title types' });
   populateCombo('bandComboPanel', 'bandComboLabel', BAND_DEFS.map(b=>b[2]), state.bands, { allLabel: 'All price bands' });
@@ -1156,6 +1201,8 @@ function activateDataset(key) {
 /* ===================== Init ===================== */
 function init() {
   setupYearListeners();
+  populateMonthOptions();
+  setupMonthListeners();
   setupComboToggle('cityCombo');
   setupComboToggle('tenureCombo');
   setupComboToggle('bandCombo');
