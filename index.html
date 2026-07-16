@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CADREB SFH Sales Dashboard 2016–2026</title>
 <style>
   .viz-root {
@@ -13,55 +15,15 @@
     --border:         rgba(27,37,64,0.10);
     --series-1:       #3d5a99; /* navy      - Freehold / primary */
     --series-2:       #bf6a43; /* terracotta - Leasehold */
-    --series-3:       #a69c8c; /* neutral gray - Other tenure */
+    --series-3:       #a69c8c; /* neutral gray - Other title type */
     --series-1-wash:  rgba(61,90,153,0.10);
     --series-2-wash:  rgba(191,106,67,0.10);
     --good:           #006300;
     --bad:            #d03b3b;
     --hover-wash:     rgba(27,37,64,0.05);
   }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root {
-      color-scheme: dark;
-      --surface-1:      #1c1712;
-      --surface-page:   #120f0b;
-      --surface-card:   #241f18;
-      --text-primary:   #f8f1e8;
-      --text-secondary: #cabfae;
-      --text-muted:     #948a7a;
-      --grid-line:      #362f26;
-      --axis-line:      #453c30;
-      --border:         rgba(248,241,232,0.10);
-      --series-1:       #6e8cd6;
-      --series-2:       #cc6c3e;
-      --series-3:       #948977;
-      --series-1-wash:  rgba(110,140,214,0.14);
-      --series-2-wash:  rgba(204,108,62,0.14);
-      --good:           #0ca30c;
-      --bad:            #e66767;
-      --hover-wash:     rgba(248,241,232,0.06);
-    }
-  }
-  :root[data-theme="dark"] .viz-root {
-    color-scheme: dark;
-    --surface-1:      #1c1712;
-    --surface-page:   #120f0b;
-    --surface-card:   #241f18;
-    --text-primary:   #f8f1e8;
-    --text-secondary: #cabfae;
-    --text-muted:     #948a7a;
-    --grid-line:      #362f26;
-    --axis-line:      #453c30;
-    --border:         rgba(248,241,232,0.10);
-    --series-1:       #6e8cd6;
-    --series-2:       #cc6c3e;
-    --series-3:       #948977;
-    --series-1-wash:  rgba(110,140,214,0.14);
-    --series-2-wash:  rgba(204,108,62,0.14);
-    --good:           #0ca30c;
-    --bad:            #e66767;
-    --hover-wash:     rgba(248,241,232,0.06);
-  }
+  /* Light-only theme by design — Cedarbrook branding does not switch with
+     the viewer's OS/theme preference. */
 
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; }
@@ -123,10 +85,10 @@
   .result-count { font-size:12.5px; color:var(--text-muted); align-self:flex-end; padding-bottom:8px; white-space:nowrap; }
 
   /* KPI tiles */
-  .kpis { display:grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 6px; }
+  .kpis { display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 6px; }
   .kpi-note { font-size:11.5px; color: var(--text-muted); margin-bottom: 16px; min-height:14px; }
-  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 640px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .kpis { grid-template-columns: 1fr; } }
   .kpi {
     background: var(--surface-card); border:1px solid var(--border); border-radius:12px;
     padding: 13px 14px;
@@ -213,7 +175,7 @@
         <span class="brand-word">CEDARBROOK</span>
       </div>
       <h1>Chilliwack &amp; District Real Estate — Single Family Home Sales</h1>
-      <p>Completed sales of single-family homes, 2016–2026, sourced from CADREB MLS data (17,388 transactions across 20 communities). Use the filters below to slice by year, community, tenure, and price band — every chart, tile, and table row updates together.</p>
+      <p>Completed sales of single-family homes, 2016–2026, sourced from CADREB MLS data (17,388 transactions across 20 communities). Use the filters below to slice by year, community, title to land, and price band — every chart, tile, and table row updates together.</p>
       <div class="note" id="dataNote"></div>
     </header>
 
@@ -236,9 +198,9 @@
       </div>
 
       <div class="filter-group">
-        <label>Tenure</label>
+        <label>Title to Land</label>
         <div class="combo" id="tenureCombo">
-          <button type="button" class="combo-btn" id="tenureComboBtn"><span id="tenureComboLabel">All tenures</span><span class="chev">▾</span></button>
+          <button type="button" class="combo-btn" id="tenureComboBtn"><span id="tenureComboLabel">All title types</span><span class="chev">▾</span></button>
           <div class="combo-panel" id="tenureComboPanel"></div>
         </div>
       </div>
@@ -288,7 +250,7 @@
     <div class="grid2">
       <div class="card">
         <h3>Freehold vs. leasehold</h3>
-        <div class="sub">Volume and median sale price by tenure</div>
+        <div class="sub">Volume and median sale price by title to land</div>
         <div id="chartTenure"></div>
       </div>
       <div class="card">
@@ -529,13 +491,15 @@ function computeKPIs(filtered) {
   const count = filtered.length;
   const totalVolume = filtered.reduce((a,r)=>a+r[F.salePrice],0);
   const medPrice = median(filtered.map(r=>r[F.salePrice]));
+  const avgPrice = mean(filtered.map(r=>r[F.salePrice]));
   const medPPSF = median(filtered.filter(r=>r[F.sqft]>0).map(r=>r[F.salePrice]/r[F.sqft]));
+  const avgPPSF = mean(filtered.filter(r=>r[F.sqft]>0).map(r=>r[F.salePrice]/r[F.sqft]));
   const avgDOM = mean(filtered.filter(r=>r[F.dom]!=null).map(r=>r[F.dom]));
   const medRatio = median(filtered.filter(r=>r[F.listPrice]>0).map(r=>100*r[F.salePrice]/r[F.listPrice]));
 
   const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const yearsPresent = Array.from(new Set(filtered.map(r=>r[F.saleY]))).sort((a,b)=>a-b);
-  let deltas = { count:null, price:null, ppsf:null, dom:null, ratio:null, volume:null };
+  let deltas = { count:null, price:null, avgPrice:null, ppsf:null, avgPpsf:null, dom:null, ratio:null, volume:null };
   if (yearsPresent.length >= 2) {
     const yLast = yearsPresent[yearsPresent.length-1];
     const yPrev = yearsPresent[yearsPresent.length-2];
@@ -551,13 +515,15 @@ function computeKPIs(filtered) {
     deltas.count = pct(curr.length, prevComparable.length);
     deltas.volume = pct(curr.reduce((a,r)=>a+r[F.salePrice],0), prevComparable.reduce((a,r)=>a+r[F.salePrice],0));
     deltas.price = pct(median(curr.map(r=>r[F.salePrice])), median(prevComparable.map(r=>r[F.salePrice])));
+    deltas.avgPrice = pct(mean(curr.map(r=>r[F.salePrice])), mean(prevComparable.map(r=>r[F.salePrice])));
     deltas.ppsf = pct(median(curr.filter(r=>r[F.sqft]>0).map(r=>r[F.salePrice]/r[F.sqft])), median(prevComparable.filter(r=>r[F.sqft]>0).map(r=>r[F.salePrice]/r[F.sqft])));
+    deltas.avgPpsf = pct(mean(curr.filter(r=>r[F.sqft]>0).map(r=>r[F.salePrice]/r[F.sqft])), mean(prevComparable.filter(r=>r[F.sqft]>0).map(r=>r[F.salePrice]/r[F.sqft])));
     deltas.dom = pct(mean(curr.filter(r=>r[F.dom]!=null).map(r=>r[F.dom])), mean(prevComparable.filter(r=>r[F.dom]!=null).map(r=>r[F.dom])));
     deltas.ratio = pct(median(curr.filter(r=>r[F.listPrice]>0).map(r=>100*r[F.salePrice]/r[F.listPrice])), median(prevComparable.filter(r=>r[F.listPrice]>0).map(r=>100*r[F.salePrice]/r[F.listPrice])));
     deltas._yLast = yLast; deltas._yPrev = yPrev; deltas._isPartial = isPartial;
     deltas._label = isPartial ? `vs ${yPrev} Jan–${MONTH_ABBR[lastMonthSeen-1]}` : `vs ${yPrev}`;
   }
-  return { count, totalVolume, medPrice, medPPSF, avgDOM, medRatio, deltas };
+  return { count, totalVolume, medPrice, avgPrice, medPPSF, avgPPSF, avgDOM, medRatio, deltas };
 }
 
 function deltaHtml(pct, goodDirection, label) {
@@ -579,7 +545,9 @@ function renderKPIs(filtered) {
     { label:'Total sales', value: k.count.toLocaleString('en-US'), delta: deltaHtml(k.deltas.count,'up',lbl) },
     { label:'Total sales volume', value: fmtCompactMoney(k.totalVolume), delta: deltaHtml(k.deltas.volume,'up',lbl) },
     { label:'Median sale price', value: fmtCompactMoney(k.medPrice), delta: deltaHtml(k.deltas.price,'up',lbl) },
+    { label:'Average sale price', value: fmtCompactMoney(k.avgPrice), delta: deltaHtml(k.deltas.avgPrice,'up',lbl) },
     { label:'Median $ / sq ft', value: fmtCompactMoney(k.medPPSF), delta: deltaHtml(k.deltas.ppsf,'up',lbl) },
+    { label:'Average $ / sq ft', value: fmtCompactMoney(k.avgPPSF), delta: deltaHtml(k.deltas.avgPpsf,'up',lbl) },
     { label:'Avg days on market', value: Math.round(k.avgDOM) + ' days', delta: deltaHtml(k.deltas.dom,'down',lbl) },
     { label:'Median sale ÷ list', value: fmtPct(k.medRatio), delta: deltaHtml(k.deltas.ratio,'up',lbl) },
   ];
@@ -948,7 +916,7 @@ const TABLE_COLS = [
   { key:'saleDate', label:'Sale date', num:false },
   { key:'city', label:'Community', num:false },
   { key:'band', label:'Price band', num:false },
-  { key:'tenure', label:'Tenure', num:false },
+  { key:'tenure', label:'Title to Land', num:false },
   { key:'sqft', label:'Sq ft', num:true },
   { key:'listDate', label:'List date', num:false },
   { key:'listPrice', label:'List price', num:true },
@@ -1076,11 +1044,11 @@ function renderAll() {
 function init() {
   const minY = MIN_YEAR, maxY = MAX_YEAR;
   document.getElementById('dataNote').textContent =
-    `Note: the source export does not include a maintenance fee field (that attribute applies to strata/condo listings; single-family home records do not carry a fee). All other requested fields — square footage, tenure, list/sale price, list/sale date — are included below.`;
+    `Note: the source export does not include a maintenance fee field (that attribute applies to strata/condo listings; single-family home records do not carry a fee). All other requested fields — square footage, title to land, list/sale price, list/sale date — are included below.`;
 
   setupYearSelects();
   buildCombo('cityCombo','cityComboLabel','cityComboPanel', cities, state.cities, { allLabel: 'All communities' });
-  buildCombo('tenureCombo','tenureComboLabel','tenureComboPanel', TENURE_LABEL, state.tenures, { allLabel: 'All tenures' });
+  buildCombo('tenureCombo','tenureComboLabel','tenureComboPanel', TENURE_LABEL, state.tenures, { allLabel: 'All title types' });
   buildCombo('bandCombo','bandComboLabel','bandComboPanel', BAND_DEFS.map(b=>b[2]), state.bands, { allLabel: 'All price bands' });
 
   document.getElementById('resetBtn').addEventListener('click', () => {
@@ -1094,7 +1062,7 @@ function init() {
     document.getElementById('tableSearch').value = '';
     document.querySelectorAll('#cityComboPanel input, #tenureComboPanel input, #bandComboPanel input').forEach(cb=>cb.checked=true);
     document.getElementById('cityComboLabel').textContent = 'All communities';
-    document.getElementById('tenureComboLabel').textContent = 'All tenures';
+    document.getElementById('tenureComboLabel').textContent = 'All title types';
     document.getElementById('bandComboLabel').textContent = 'All price bands';
     renderAll();
   });
