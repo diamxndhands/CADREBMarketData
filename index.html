@@ -2,65 +2,65 @@
 <style>
   .viz-root {
     color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --surface-page:   #f9f9f7;
-    --surface-card:   #ffffff;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --grid-line:      #e1e0d9;
-    --axis-line:      #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --series-1:       #2a78d6; /* blue   - Freehold / primary */
-    --series-2:       #008300; /* green  - Leasehold */
-    --series-3:       #eda100; /* yellow - Other tenure */
-    --series-1-wash:  rgba(42,120,214,0.10);
-    --series-2-wash:  rgba(0,131,0,0.10);
+    --surface-1:      #fdf9f4;
+    --surface-page:   #fbf1e7; /* Cedarbrook cream */
+    --surface-card:   #fffdfb;
+    --text-primary:   #1b2540; /* Cedarbrook navy */
+    --text-secondary: #545b70;
+    --text-muted:     #948c7c;
+    --grid-line:      #ecdfd0;
+    --axis-line:      #cabfae;
+    --border:         rgba(27,37,64,0.10);
+    --series-1:       #3d5a99; /* navy      - Freehold / primary */
+    --series-2:       #bf6a43; /* terracotta - Leasehold */
+    --series-3:       #a69c8c; /* neutral gray - Other tenure */
+    --series-1-wash:  rgba(61,90,153,0.10);
+    --series-2-wash:  rgba(191,106,67,0.10);
     --good:           #006300;
     --bad:            #d03b3b;
-    --hover-wash:     rgba(11,11,11,0.04);
+    --hover-wash:     rgba(27,37,64,0.05);
   }
   @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) .viz-root {
       color-scheme: dark;
-      --surface-1:      #1a1a19;
-      --surface-page:   #0d0d0d;
-      --surface-card:   #202020;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted:     #898781;
-      --grid-line:      #2c2c2a;
-      --axis-line:      #383835;
-      --border:         rgba(255,255,255,0.10);
-      --series-1:       #3987e5;
-      --series-2:       #008300;
-      --series-3:       #c98500;
-      --series-1-wash:  rgba(57,135,229,0.14);
-      --series-2-wash:  rgba(0,131,0,0.14);
+      --surface-1:      #1c1712;
+      --surface-page:   #120f0b;
+      --surface-card:   #241f18;
+      --text-primary:   #f8f1e8;
+      --text-secondary: #cabfae;
+      --text-muted:     #948a7a;
+      --grid-line:      #362f26;
+      --axis-line:      #453c30;
+      --border:         rgba(248,241,232,0.10);
+      --series-1:       #6e8cd6;
+      --series-2:       #cc6c3e;
+      --series-3:       #948977;
+      --series-1-wash:  rgba(110,140,214,0.14);
+      --series-2-wash:  rgba(204,108,62,0.14);
       --good:           #0ca30c;
       --bad:            #e66767;
-      --hover-wash:     rgba(255,255,255,0.06);
+      --hover-wash:     rgba(248,241,232,0.06);
     }
   }
   :root[data-theme="dark"] .viz-root {
     color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --surface-page:   #0d0d0d;
-    --surface-card:   #202020;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted:     #898781;
-    --grid-line:      #2c2c2a;
-    --axis-line:      #383835;
-    --border:         rgba(255,255,255,0.10);
-    --series-1:       #3987e5;
-    --series-2:       #008300;
-    --series-3:       #c98500;
-    --series-1-wash:  rgba(57,135,229,0.14);
-    --series-2-wash:  rgba(0,131,0,0.14);
+    --surface-1:      #1c1712;
+    --surface-page:   #120f0b;
+    --surface-card:   #241f18;
+    --text-primary:   #f8f1e8;
+    --text-secondary: #cabfae;
+    --text-muted:     #948a7a;
+    --grid-line:      #362f26;
+    --axis-line:      #453c30;
+    --border:         rgba(248,241,232,0.10);
+    --series-1:       #6e8cd6;
+    --series-2:       #cc6c3e;
+    --series-3:       #948977;
+    --series-1-wash:  rgba(110,140,214,0.14);
+    --series-2-wash:  rgba(204,108,62,0.14);
     --good:           #0ca30c;
     --bad:            #e66767;
-    --hover-wash:     rgba(255,255,255,0.06);
+    --hover-wash:     rgba(248,241,232,0.06);
   }
 
   * { box-sizing: border-box; }
@@ -74,6 +74,9 @@
   .wrap { max-width: 1360px; margin: 0 auto; }
 
   header.dash-head { margin-bottom: 20px; }
+  .brand-lockup { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .brand-lockup svg { display:block; flex-shrink:0; }
+  .brand-lockup .brand-word { font-size:19px; font-weight:600; letter-spacing:0.14em; color: var(--text-primary); }
   header.dash-head h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
   header.dash-head p { margin: 0; color: var(--text-secondary); font-size: 13.5px; line-height:1.5; max-width: 900px; }
   header.dash-head .note {
@@ -202,6 +205,13 @@
 <div class="viz-root">
   <div class="wrap">
     <header class="dash-head">
+      <div class="brand-lockup" role="img" aria-label="Cedarbrook">
+        <svg width="30" height="24" viewBox="0 0 38 30" aria-hidden="true">
+          <polygon points="3,27 16,4 29,27" fill="var(--text-primary)"></polygon>
+          <polygon points="15,27 25,10 36,27" fill="var(--text-primary)" stroke="var(--surface-page)" stroke-width="1.6" stroke-linejoin="round"></polygon>
+        </svg>
+        <span class="brand-word">CEDARBROOK</span>
+      </div>
       <h1>Chilliwack &amp; District Real Estate — Single Family Home Sales</h1>
       <p>Completed sales of single-family homes, 2016–2026, sourced from CADREB MLS data (17,388 transactions across 20 communities). Use the filters below to slice by year, community, tenure, and price band — every chart, tile, and table row updates together.</p>
       <div class="note" id="dataNote"></div>
@@ -863,7 +873,7 @@ function renderRatio(filtered) {
   });
   const container = document.getElementById('chartRatio');
   container._w = container.clientWidth || 560;
-  renderLineChart(container, years, [{ values, colorVar:'--series-2', label:'Sale ÷ list' }], {
+  renderLineChart(container, years, [{ values, colorVar:'--series-1', label:'Sale ÷ list' }], {
     minZero:false, refLine:100,
     yFormat: v => v.toFixed(0)+'%',
     tooltipFormat: v => v.toFixed(1)+'%',
